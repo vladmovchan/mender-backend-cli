@@ -37,7 +37,9 @@ def add_args(sub):
     plist.set_defaults(authcommand='list')
 
     pcount = pauth.add_parser('count', help='Count devices with given status')
-    pcount.add_argument('status', help='device status (pending|accepted|rejected)')
+    pcount.add_argument('-s', '--status', default='',
+            choices=['accepted', 'rejected', 'preauthorized', 'pending'],
+            help='count devices with specified status')
     pcount.set_defaults(authcommand='count')
 
     pdelete = pauth.add_parser('delete', help='Delete device')
@@ -97,6 +99,6 @@ def delete_device(opts):
         rsp = do_simple_delete(api, url)
 
 def count_devices(opts):
-    url = authentication_url(opts.service, '/devices/count?{}'.format(opts.status))
+    url = authentication_url(opts.service, '/devices/count?status={}'.format(opts.status))
     with api_from_opts(opts) as api:
         rsp = do_simple_get(api, url)
