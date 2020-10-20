@@ -71,7 +71,7 @@ def dump_device(data):
     for aset in data.get('auth_sets', []):
         print('       id: %s' % aset['id'])
         print('       status: %s' % aset['status'])
-        print('       identity data: %s' % aset['id_data'])
+        print('       identity data: %s' % aset['identity_data'])
         key_lines = aset['pubkey'].split('\n')
         print('       key:', key_lines[0])
         for l in key_lines[1:]:

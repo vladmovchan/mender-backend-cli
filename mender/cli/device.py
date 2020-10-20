@@ -128,7 +128,7 @@ def do_authorize(opts):
     })
     logging.debug('identity: %s', identity)
     data = json.dumps({
-        'id_data': identity,
+        'identity_data': identity,
         'pubkey': str(key.publickey().exportKey(), 'utf-8'),
         'tenant_token': opts.tenant_token,
     })

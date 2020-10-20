@@ -26,7 +26,7 @@ import requests.auth
 from requests import Session as ApiClient
 
 
-API_URL = '/api/management/v1/'
+API_URL = '/api/management/v{}/'
 API_DEVICES_URL = '/api/devices/v1/'
 
 def add_url_path(base, path):
@@ -37,9 +37,8 @@ def add_url_path(base, path):
     return base + path
 
 
-def service_path(service):
-    return add_url_path(API_URL, service)
-
+def service_path(service, api_version = 1):
+    return add_url_path(API_URL.format(api_version), service)
 
 def admissions_url(host, path=''):
     ap = add_url_path(host, service_path('/admission/devices'))
@@ -48,7 +47,7 @@ def admissions_url(host, path=''):
     return ap
 
 def authentication_url(host, path=''):
-    ap = add_url_path(host, service_path('/devauth/'))
+    ap = add_url_path(host, service_path('/devauth/', api_version = 2))
     if path:
         return add_url_path(ap, path)
     return ap
