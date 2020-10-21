@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
+import requests
 
 from mender.cli.utils import run_command, api_from_opts, do_simple_get, \
     do_request, errorprinter, jsonprinter
@@ -64,6 +65,10 @@ def add_args(sub):
 
     pg = pgrsub.add_parser('show', help='Show group devices')
     pg.add_argument('group', help='Group ID')
+    pg.add_argument('-l', '--limit', default=500, help='Amount of records per page')
+    pg.add_argument('-p', '--page', default=1, help='Starting page number')
+    pg.add_argument('-1', '--single-page', default=False, action='store_true',
+            help='Fetch just a single page')
     pg.set_defaults(invgrcommand='show')
 
 
@@ -178,6 +183,14 @@ def group_list(opts):
 
 
 def group_show(opts):
-    url = inventory_url(opts.service, 'groups/{}/devices'.format(opts.group))
     with api_from_opts(opts) as api:
-        do_simple_get(api, url)
+        while True:
+            url = inventory_url(opts.service, 'groups/{}/devices?per_page={}&page={}'
+                    .format(opts.group, opts.limit, opts.page))
+            rsp = do_simple_get(api, url, printer=lambda rsp: [print(id) for id in rsp.json()])
+            if (opts.single_page
+                or 'Link' not in rsp.headers
+                or not list(filter(lambda link: link['rel'] == 'next',
+                    requests.utils.parse_header_links(rsp.headers['Link'])))):
+                break
+            opts.page += 1
