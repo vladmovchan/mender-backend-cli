@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
+import requests
 
 from mender.cli.utils import run_command, api_from_opts, do_simple_get, do_simple_delete
 from mender.client import authentication_url
@@ -37,8 +38,10 @@ def add_args(sub):
     plist.add_argument('-s', '--status', default='',
             choices=['accepted', 'rejected', 'preauthorized', 'pending'],
             help='list devices with specified status')
-    plist.add_argument('-l', '--limit', default=500, help='Limit output')
-    plist.add_argument('-p', '--page', default=1, help='Page number')
+    plist.add_argument('-l', '--limit', default=500, help='Amount of records per page')
+    plist.add_argument('-p', '--page', default=1, help='Starting page number')
+    plist.add_argument('-1', '--single-page', default=False, action='store_true',
+            help='Fetch just a single page')
     plist.add_argument('-P', '--printer', default="brief", choices=PRINT_MAP.keys(),
             help='Print function')
     plist.set_defaults(authcommand='list')
@@ -99,10 +102,17 @@ def show_device(opts):
 
 def list_devices(opts):
     with api_from_opts(opts) as api:
-        url = authentication_url(opts.service, '/devices?status={}&per_page={}&page={}'
-                .format(opts.status, opts.limit, opts.page))
-        do_simple_get(api, url, printer=lambda rsp:
-                [PRINT_MAP[opts.printer](dev) for dev in rsp.json()])
+        while True:
+            url = authentication_url(opts.service, '/devices?status={}&per_page={}&page={}'
+                    .format(opts.status, opts.limit, opts.page))
+            rsp = do_simple_get(api, url, printer=lambda rsp:
+                    [PRINT_MAP[opts.printer](dev) for dev in rsp.json()])
+            if (opts.single_page
+                or 'Link' not in rsp.headers
+                or not list(filter(lambda link: link['rel'] == 'next',
+                    requests.utils.parse_header_links(rsp.headers['Link'])))):
+                break
+            opts.page += 1
 
 def delete_device(opts):
     url = authentication_url(opts.service, '/devices/{}'.format(opts.device))
