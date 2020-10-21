@@ -49,9 +49,12 @@ def add_args(sub):
 
     pdevlist = pdevsub.add_parser('list', help='List devices')
     pdevlist.add_argument('-a', '--attributes', default="id, updated", help='Csv attribute list to show')
-    pdevlist.add_argument('-f', '--format', default="plain", help='Format Output')
-    pdevlist.add_argument('-l', '--limit', default="500", help='Limit output')
-    pdevlist.add_argument('-p', '--page', default="1", help='Page number')
+    pdevlist.add_argument('-f', '--format', default='plain', choices=['plain', 'json'],
+            help='Format Output')
+    pdevlist.add_argument('-l', '--limit', default=500, help='Amount of records per page')
+    pdevlist.add_argument('-p', '--page', default=1, help='Starting page number')
+    pdevlist.add_argument('-1', '--single-page', default=False, action='store_true',
+            help='Fetch just a single page')
     pdevlist.set_defaults(invdevcommand='list')
 
     pgr = pinvsub.add_parser('group', help='Group commands')
@@ -148,32 +151,34 @@ def device_group(opts):
 
 def devices_list(opts):
     def devlist_printer(rsp):
-        devslist = rsp.json()
-        logging.info("Devices:")
         if opts.format == 'plain':
-            for dev in devslist:
+            for dev in rsp.json():
                 attrs = repack_attrs(dev.get('attributes'))
                 result = ""
                 if opts.attributes:
-                    attributes = opts.attributes.split(",")
-                    for attribute in attributes:
-                        attribute = attribute.strip()
+                    for attribute in map(str.strip, opts.attributes.split(",")):
                         if attribute == 'id':
-                            result = result + "{}={} ".format(attribute, dev['id'])
+                            result += "{}={} ".format(attribute, dev['id'])
                         elif attribute == 'updated':
-                            result = result + "{}={} ".format(attribute, dev['updated_ts'])
+                            result += "{}={} ".format(attribute, dev['updated_ts'])
                         else:
-                            result = result + "{}={} ".format(attribute, attrs.get(attribute, '<undefined>'))
+                            result += "{}={} ".format(attribute, attrs.get(attribute, '<undefined>'))
                 print(result)
 
         elif opts.format == 'json':
             jsonprinter(rsp)
 
-    # TODO add pagination (go through all pages)
-    url = inventory_url(opts.service, '/devices?per_page={}&page={}'.format(opts.limit,
-                                                                            opts.page))
     with api_from_opts(opts) as api:
-        do_simple_get(api, url, printer=devlist_printer)
+        while True:
+            url = inventory_url(opts.service, '/devices?per_page={}&page={}'
+                    .format(opts.limit, opts.page))
+            rsp = do_simple_get(api, url, printer=devlist_printer)
+            if (opts.single_page
+                or 'Link' not in rsp.headers
+                or not list(filter(lambda link: link['rel'] == 'next',
+                    requests.utils.parse_header_links(rsp.headers['Link'])))):
+                break
+            opts.page += 1
 
 
 def group_list(opts):
