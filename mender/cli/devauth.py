@@ -39,6 +39,8 @@ def add_args(sub):
             help='list devices with specified status')
     plist.add_argument('-l', '--limit', default=500, help='Limit output')
     plist.add_argument('-p', '--page', default=1, help='Page number')
+    plist.add_argument('-P', '--printer', default="brief", choices=PRINT_MAP.keys(),
+            help='Print function')
     plist.set_defaults(authcommand='list')
 
     pcount = pauth.add_parser('count', help='Count devices with given status')
@@ -85,6 +87,9 @@ def dump_device(data):
             print(' ' * 11, l)
 
 
+PRINT_MAP = {'brief': dump_device_brief,
+             'full': dump_device}
+
 def show_device(opts):
     url = authentication_url(opts.service, '/devices/{}'.format(opts.device))
     with api_from_opts(opts) as api:
@@ -96,8 +101,8 @@ def list_devices(opts):
     with api_from_opts(opts) as api:
         url = authentication_url(opts.service, '/devices?status={}&per_page={}&page={}'
                 .format(opts.status, opts.limit, opts.page))
-        do_simple_get(api, url, printer=lambda rsp: [dump_device_brief(dev)
-                                                     for dev in rsp.json()])
+        do_simple_get(api, url, printer=lambda rsp:
+                [PRINT_MAP[opts.printer](dev) for dev in rsp.json()])
 
 def delete_device(opts):
     url = authentication_url(opts.service, '/devices/{}'.format(opts.device))
