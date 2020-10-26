@@ -23,7 +23,7 @@ import logging
 import argparse
 import os
 
-from mender.cli import deps, devadm, devauth, device, artifacts, inventory, client, user
+from mender.cli import deps, devauth, device, artifacts, inventory, client, user
 from mender.cli.utils import run_command, CommandNotSupportedError
 from mender.client import ClientError
 
@@ -52,10 +52,6 @@ def parse_arguments():
     pim = sub.add_parser('artifact', help='Artifacts')
     artifacts.add_args(pim)
     pim.set_defaults(command='artifact')
-
-    padm = sub.add_parser('admission', help='Admission')
-    devadm.add_args(padm)
-    padm.set_defaults(command='admission')
 
     pauth = sub.add_parser('authentication', help='Device Authentication')
     devauth.add_args(pauth)
@@ -100,7 +96,6 @@ def main():
     try:
         commands = {
             'deployment': deps.do_main,
-            'admission': devadm.do_main,
             'authentication': devauth.do_main,
             'device': device.do_main,
             'artifact': artifacts.do_main,

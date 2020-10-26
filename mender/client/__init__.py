@@ -40,12 +40,6 @@ def add_url_path(base, path):
 def service_path(service, api_version = 1):
     return add_url_path(API_URL.format(api_version), service)
 
-def admissions_url(host, path=''):
-    ap = add_url_path(host, service_path('/admission/devices'))
-    if path:
-        return add_url_path(ap, path)
-    return ap
-
 def authentication_url(host, path=''):
     ap = add_url_path(host, service_path('/devauth/', api_version = 2))
     if path:

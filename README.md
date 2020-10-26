@@ -17,16 +17,15 @@ There's a separate tool for every service, each run as subcommand of
 ```
 ./mender-backend --help
 usage: mender-backend [-h] [-d] [-s SERVICE] [-n]
-                      {deployment,image,admission,inventory,device} ...
+                      {deployment,image,inventory,device} ...
 
 mender backend client
 
 positional arguments:
-  {deployment,image,admission,inventory,device}
+  {deployment,image,inventory,device}
                         Commands
     deployment          Deployments
     image               Images
-    admission           Admission
     inventory           Inventory
     device              Device
 

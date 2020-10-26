@@ -42,11 +42,11 @@ class UrlsTestCase(unittest.TestCase):
         self.assertEqual(p, '/api/integrations/0.1/foo/bar')
 
     def test_urls(self):
-        aurl = client.admissions_url('http://foo:123/')
-        self.assertEqual(aurl, 'http://foo:123/api/integrations/0.1/admission/devices')
+        aurl = client.authentication_url('http://foo:123/')
+        self.assertEqual(aurl, 'http://foo:123/api/management/v2/devauth/')
 
-        aurl = client.admissions_url('http://foo:123')
-        self.assertEqual(aurl, 'http://foo:123/api/integrations/0.1/admission/devices')
+        aurl = client.authentication_url('http://foo:123')
+        self.assertEqual(aurl, 'http://foo:123/api/management/v2/devauth/')
 
-        aurl = client.admissions_url('http://foo:123', '/foobar')
-        self.assertEqual(aurl, 'http://foo:123/api/integrations/0.1/admission/devices/foobar')
+        aurl = client.authentication_url('http://foo:123', '/foobar')
+        self.assertEqual(aurl, 'http://foo:123/api/management/v2/devauth/foobar')
