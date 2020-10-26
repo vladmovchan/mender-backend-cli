@@ -22,7 +22,8 @@
 import logging
 import requests
 
-from mender.cli.utils import run_command, api_from_opts, do_simple_get, do_simple_delete
+from mender.cli.utils import run_command, api_from_opts, do_simple_get, do_simple_delete, \
+        do_request
 from mender.client import authentication_url
 
 
@@ -56,6 +57,18 @@ def add_args(sub):
     pdelete.add_argument('device', help='Device ID')
     pdelete.set_defaults(authcommand='delete')
 
+    paccept = pauth.add_parser('accept', help='Accept device')
+    paccept.add_argument('device', help='Device ID')
+    paccept.add_argument('-a', '--aid',
+            help='Explicitly specify device authentication data set id')
+    paccept.set_defaults(authcommand='accept')
+
+    preject = pauth.add_parser('reject', help='Reject device')
+    preject.add_argument('device', help='Device ID')
+    preject.add_argument('-a', '--aid',
+            help='Explicitly specify device authentication data set id')
+    preject.set_defaults(authcommand='reject')
+
 
 def do_main(opts):
     commands = {
@@ -63,6 +76,8 @@ def do_main(opts):
         'count': count_devices,
         'show': show_device,
         'delete': delete_device,
+        'accept': lambda opts: set_device_auth_status(opts, 'accepted'),
+        'reject': lambda opts: set_device_auth_status(opts, 'rejected'),
     }
     run_command(opts.authcommand, commands, opts)
 
@@ -118,6 +133,32 @@ def delete_device(opts):
     url = authentication_url(opts.service, '/devices/{}'.format(opts.device))
     with api_from_opts(opts) as api:
         rsp = do_simple_delete(api, url)
+
+def set_device_auth_status(opts, status):
+    if opts.aid is None:
+        url = authentication_url(opts.service, '/devices/{}'.format(opts.device))
+        with api_from_opts(opts) as api:
+            rsp = do_simple_get(api, url, printer=lambda rsp: None).json()
+        if 'auth_sets' not in rsp:
+            logging.error('`auth_sets` is absent in the reply')
+            logging.error('\ttry to specify authentication data set id explicitly')
+            return
+        if len(rsp['auth_sets']) == 0:
+            logging.error('`auth_sets` array is empty in the reply')
+            return
+        if len(rsp['auth_sets']) > 1:
+            logging.error('There are more than one authentication data set available for the device')
+            logging.error('\tplease specify explicitly which one to use')
+            logging.error('\t%s' % ', '.join(['{} ({})'.format(aset['id'], aset['status'])
+                                               for aset in rsp.get('auth_sets', [])]))
+            return
+        opts.aid = rsp['auth_sets'][0]['id']
+        logging.debug('obtained authentication data set id: %s', opts.aid)
+    url = authentication_url(opts.service,
+            '/devices/{}/auth/{}/status'.format(opts.device, opts.aid))
+    logging.debug('device auth URL: %s', url)
+    with api_from_opts(opts) as api:
+        do_request(api, url, method='PUT', json={'status': status})
 
 def count_devices(opts):
     url = authentication_url(opts.service, '/devices/count?status={}'.format(opts.status))
