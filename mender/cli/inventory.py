@@ -20,10 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-import requests
 
 from mender.cli.utils import run_command, api_from_opts, do_simple_get, \
-    do_request, errorprinter, jsonprinter
+    do_request, errorprinter, jsonprinter, is_next_link_absent
 from mender.client import inventory_url
 
 
@@ -173,10 +172,7 @@ def devices_list(opts):
             url = inventory_url(opts.service, '/devices?per_page={}&page={}'
                     .format(opts.limit, opts.page))
             rsp = do_simple_get(api, url, printer=devlist_printer)
-            if (opts.single_page
-                or 'Link' not in rsp.headers
-                or not list(filter(lambda link: link['rel'] == 'next',
-                    requests.utils.parse_header_links(rsp.headers['Link'])))):
+            if opts.single_page or is_next_link_absent(rsp):
                 break
             opts.page += 1
 
@@ -193,9 +189,6 @@ def group_show(opts):
             url = inventory_url(opts.service, 'groups/{}/devices?per_page={}&page={}'
                     .format(opts.group, opts.limit, opts.page))
             rsp = do_simple_get(api, url, printer=lambda rsp: [print(id) for id in rsp.json()])
-            if (opts.single_page
-                or 'Link' not in rsp.headers
-                or not list(filter(lambda link: link['rel'] == 'next',
-                    requests.utils.parse_header_links(rsp.headers['Link'])))):
+            if opts.single_page or is_next_link_absent(rsp):
                 break
             opts.page += 1

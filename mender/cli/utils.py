@@ -128,6 +128,13 @@ def do_request(api, url, method='GET', printer=jsonprinter, success=[200, 204], 
         errorprinter(rsp)
     return rsp
 
+def is_next_link_absent(rsp):
+    if ('Link' not in rsp.headers
+            or not list(filter(lambda link: link['rel'] == 'next',
+                requests.utils.parse_header_links(rsp.headers['Link'])))):
+        return True
+    return False
+
 
 def pad_b64(b64s):
     """Pad Base64 encoded string so that its length is a multiple of 4 bytes"""
